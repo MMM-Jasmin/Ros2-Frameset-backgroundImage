@@ -1,0 +1,20 @@
+# Configuration for object detection node
+/left_to_background:
+  ros__parameters:
+    # print debug output
+    debug: true
+    # rotate images? 0/90/180/270
+    rotation: 270
+    # image source topic
+    in_topic: "/camera_left/frameset"
+    # image source topic
+    out_topic: "/background/color"
+    print_fps: true
+    FPS_STR: "br_FPS"
+    # Use sensor data Quality of Service for messages
+    qos_sensor_data: false
+    # Message queue size
+    qos_history_depth: 10
+    # threshold for cutting background
+    depth_thr: 14000
+
