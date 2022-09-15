@@ -67,7 +67,8 @@ int main(int argc, char** argv)
 	//image_node->setExitSignal(&exit_request);
 	image_node->init();
 
-	rclcpp::executors::SingleThreadedExecutor executor;
+	//rclcpp::executors::SingleThreadedExecutor executor;
+	rclcpp::executors::MultiThreadedExecutor executor(rclcpp::executor::ExecutorArgs(), 3, false);
 	executor.add_node(image_node);
 
 	executor.spin();

@@ -39,6 +39,8 @@ private:
 	cv::cuda::GpuMat m_color_image_cuda; 
 	cv::cuda::GpuMat m_color_image_cuda_tmp; 
 
+	float m_maxFPS;
+
 	std::string m_window_name_frameset_0		= "color";
 	std::string m_FPS_STR = "";
 	int const m_max_binary_value = 100000;
@@ -52,15 +54,28 @@ private:
 	int m_image_rotation, m_depth_thr;
 
 	uint8_t *m_send_frame_bytes = NULL;
+	uint8_t *m_send_frame_small_416_bytes = NULL;
+	uint8_t *m_send_frame_small_608_bytes = NULL;
+	uint8_t *m_send_frame_small_full_416_bytes = NULL;
+	uint8_t *m_send_frame_small_full_608_bytes = NULL;
+
+	int m_out_small_width = 608;
+	int m_out_small_height = 608;
 
 	rcl_interfaces::msg::SetParametersResult parametersCallback(const std::vector<rclcpp::Parameter> &parameters);
 	OnSetParametersCallbackHandle::SharedPtr callback_handle_;
 
 	cv::Ptr<cv::cuda::Filter> m_gaussian;
 
-	rclcpp::Publisher<sensor_msgs::msg::Image>::SharedPtr m_image_publisher	= nullptr;
+	rclcpp::Publisher<sensor_msgs::msg::Image>::SharedPtr 	m_image_publisher	= nullptr;
+	rclcpp::Publisher<sensor_msgs::msg::Image>::SharedPtr 	m_image_small_416_publisher = nullptr;
+	rclcpp::Publisher<sensor_msgs::msg::Image>::SharedPtr 	m_image_small_608_publisher = nullptr;
+	rclcpp::Publisher<sensor_msgs::msg::Image>::SharedPtr 	m_image_small_full_416_publisher = nullptr;
+	rclcpp::Publisher<sensor_msgs::msg::Image>::SharedPtr 	m_image_small_full_608_publisher= nullptr;
+	rclcpp::Publisher<std_msgs::msg::String>::SharedPtr 	m_fps_publisher 	=	 nullptr;
 
 	rclcpp::QoS m_qos_profile = rclcpp::SystemDefaultsQoS();
+	rclcpp::QoS m_qos_profile_sysdef = rclcpp::SystemDefaultsQoS();
 
 	rclcpp::Subscription<camera_interfaces::msg::DepthFrameset>::SharedPtr m_frameset_subscription;
 

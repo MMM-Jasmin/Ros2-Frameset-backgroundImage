@@ -11,6 +11,11 @@ BackgroundImageNode::BackgroundImageNode() : Node("background_image_node", rclcp
 	this->declare_parameter("rotation", 0);
 	this->declare_parameter("in_topic", "");
 	this->declare_parameter("out_topic", "");
+	this->declare_parameter("out_small_topic", "");
+    this->declare_parameter("out_small_width", 608);
+	this->declare_parameter("out_small_height", 608);
+	this->declare_parameter("fps_topic", "test/fps");
+	this->declare_parameter("max_fps", 30.0f);
 	this->declare_parameter("depth_thr", 0);
 	this->declare_parameter("print_fps", true);
 	this->declare_parameter("FPS_STR", "FPS" );
@@ -25,11 +30,16 @@ void BackgroundImageNode::init()
 {
 
 	bool qos_sensor_data;
-	std::string in_ros_topic, out_ros_topic;
+	std::string in_ros_topic, out_ros_topic, out_small_ros_topic,fps_topic;
 	int qos_history_depth;
 
 	this->get_parameter("in_topic", in_ros_topic);
 	this->get_parameter("out_topic", out_ros_topic);
+	this->get_parameter("out_small_topic", out_small_ros_topic);
+    this->get_parameter("out_small_width", m_out_small_width);
+	this->get_parameter("out_small_height", m_out_small_height);
+	this->get_parameter("fps_topic", fps_topic);
+	this->get_parameter("max_fps", m_maxFPS);
 	this->get_parameter("rotation", m_image_rotation);
 	this->get_parameter("depth_thr", m_depth_thr);
 	this->get_parameter("print_fps", m_print_fps);
@@ -43,9 +53,24 @@ void BackgroundImageNode::init()
 	}
 
 	m_qos_profile = m_qos_profile.keep_last(qos_history_depth);
+	m_qos_profile = m_qos_profile.keep_last(qos_history_depth);
+	m_qos_profile = m_qos_profile.lifespan(std::chrono::milliseconds(500));
 	m_qos_profile = m_qos_profile.reliability(RMW_QOS_POLICY_RELIABILITY_RELIABLE);
 	m_qos_profile = m_qos_profile.durability(RMW_QOS_POLICY_DURABILITY_VOLATILE);
-	m_qos_profile = m_qos_profile.deadline(std::chrono::nanoseconds(static_cast<int>(1e9 / 30)));
+	
+
+	m_qos_profile_sysdef = m_qos_profile_sysdef.keep_last(qos_history_depth);
+	m_qos_profile_sysdef = m_qos_profile_sysdef.lifespan(std::chrono::milliseconds(500));
+	//m_qos_profile_sysdef = m_qos_profile_sysdef.reliability(RMW_QOS_POLICY_RELIABILITY_RELIABLE);
+	m_qos_profile_sysdef = m_qos_profile_sysdef.durability(RMW_QOS_POLICY_DURABILITY_VOLATILE);
+	//rclcpp::QoS m_qos_profile_BEST = m_qos_profile_sysdef.reliability(RMW_QOS_POLICY_RELIABILITY_BEST_EFFORT);
+	
+	//m_qos_profile_sysdef = m_qos_profile_sysdef.reliability(RMW_QOS_POLICY_RELIABILITY_BEST_EFFORT);
+
+	//m_qos_profile_sysdef = m_qos_profile_sysdef.durability(RMW_QOS_POLICY_DURABILITY_VOLATILE);
+	//m_qos_profile = m_qos_profile.reliability(RMW_QOS_POLICY_RELIABILITY_RELIABLE);
+	
+	//m_qos_profile = m_qos_profile.deadline(std::chrono::nanoseconds(static_cast<int>(1e9 / 30)));
 	
 	m_elapsedTime = 0;
 	m_timer.Start();
@@ -55,11 +80,22 @@ void BackgroundImageNode::init()
 	//cv::namedWindow(m_window_name_frameset_0, cv::WINDOW_AUTOSIZE);
 
 	//m_gaussian = cv::cuda::createGaussianFilter(depth_image.type(),depth_image.type(), Size(31,31),0);
-	m_gaussian = cv::cuda::createGaussianFilter(CV_16UC1,CV_8UC1, cv::Size(11,11),1);
+	m_gaussian = cv::cuda::createGaussianFilter(CV_16UC1,CV_8UC1, cv::Size(13,13),1);
 
-	m_image_publisher = this->create_publisher<sensor_msgs::msg::Image>(out_ros_topic, m_qos_profile);
+	m_image_publisher 					= this->create_publisher<sensor_msgs::msg::Image>(out_ros_topic, m_qos_profile);
+	m_image_small_416_publisher 		= this->create_publisher<sensor_msgs::msg::Image>(out_small_ros_topic + "_416", m_qos_profile);;
+	m_image_small_608_publisher 		= this->create_publisher<sensor_msgs::msg::Image>(out_small_ros_topic + "_608", m_qos_profile);;
+	m_image_small_full_416_publisher 	= this->create_publisher<sensor_msgs::msg::Image>(out_small_ros_topic + "_full_416", m_qos_profile);;
+	m_image_small_full_608_publisher 	= this->create_publisher<sensor_msgs::msg::Image>(out_small_ros_topic + "_full_608", m_qos_profile);;
+	m_fps_publisher    					= this->create_publisher<std_msgs::msg::String>(fps_topic, m_qos_profile_sysdef);
 
 	callback_handle_ = this->add_on_set_parameters_callback(std::bind(&BackgroundImageNode::parametersCallback, this, std::placeholders::_1));
+
+	m_send_frame_small_416_bytes  = reinterpret_cast<uint8_t 	*>(malloc(static_cast<unsigned>(416 * 416) * 3 * sizeof(uint8_t)));
+	m_send_frame_small_608_bytes  = reinterpret_cast<uint8_t 	*>(malloc(static_cast<unsigned>(608 * 608) * 3 * sizeof(uint8_t)));
+	m_send_frame_small_full_416_bytes  = reinterpret_cast<uint8_t 	*>(malloc(static_cast<unsigned>(416 * 416) * 3 * sizeof(uint8_t)));
+	m_send_frame_small_full_608_bytes  = reinterpret_cast<uint8_t 	*>(malloc(static_cast<unsigned>(608 * 608) * 3 * sizeof(uint8_t)));
+
 }
 
 void BackgroundImageNode::publishImage(uint8_t * color_image, int width, int height, rclcpp::Publisher<sensor_msgs::msg::Image>::SharedPtr message_publisher)
@@ -100,51 +136,111 @@ void BackgroundImageNode::framesetCallback(camera_interfaces::msg::DepthFrameset
 
 	int image_width = static_cast<int>(fset_msg.get()->color_image.width);
 	int image_height = static_cast<int>(fset_msg.get()->color_image.height);
+	int send_width, send_heigth;
+
+	
 
 	if (m_send_frame_bytes == NULL)
 		m_send_frame_bytes  = reinterpret_cast<uint8_t 	*>(malloc(static_cast<unsigned>(image_width * image_height) * 3 * sizeof(uint8_t)));
-	else if(m_image_rotation == 90 || m_image_rotation == 270)
-		auto future_publishImage = std::async(&BackgroundImageNode::publishImage, this, m_send_frame_bytes, image_height,image_width, m_image_publisher);
-	else
-		auto future_publishImage = std::async(&BackgroundImageNode::publishImage, this, m_send_frame_bytes, image_width, image_height, m_image_publisher);
+
+	if(m_image_rotation == 90 || m_image_rotation == 270){
+		send_width = image_height;
+		send_heigth = image_width;
+	}else{
+		send_width = image_width;
+		send_heigth = image_height;
+	}
+		
+	auto future_publishImage = std::async(&BackgroundImageNode::publishImage, this, m_send_frame_bytes, send_width,send_heigth, m_image_publisher);
+	auto future_publishImage_416 = std::async(&BackgroundImageNode::publishImage, this, m_send_frame_small_416_bytes, 416, 416, m_image_small_416_publisher);
+	auto future_publishImage_608 = std::async(&BackgroundImageNode::publishImage, this, m_send_frame_small_608_bytes, 608, 608, m_image_small_608_publisher);	
+	auto future_publishImage_full_416 = std::async(&BackgroundImageNode::publishImage, this, m_send_frame_small_full_416_bytes, 416, 416, m_image_small_full_416_publisher);
+	auto future_publishImage_full_608 = std::async(&BackgroundImageNode::publishImage, this, m_send_frame_small_full_608_bytes, 608, 608, m_image_small_full_608_publisher);	
 
 	cv::Size image_size(image_width, image_height);
 	cv::Mat color_image(image_size, CV_8UC3, (void *)fset_msg.get()->color_image.data.data(), cv::Mat::AUTO_STEP);
 	cv::Mat depth_image(image_size, CV_16UC1, (void *)fset_msg.get()->depth_image.data.data(), cv::Mat::AUTO_STEP);
+	cv::Mat color_image_small_416;
+	cv::Mat color_image_small_608;
+	cv::Mat color_image_small_full_416;
+	cv::Mat color_image_small_full_608;
 
 	cv::cuda::GpuMat depth_image_cuda;	
 	cv::cuda::GpuMat depth_image_cuda_tmp;
 	cv::cuda::GpuMat color_image_cuda;
 	cv::cuda::GpuMat color_image_cuda_tmp;
+	cv::cuda::GpuMat color_image_cuda_out;
+	cv::cuda::GpuMat color_image_cuda_small_416;
+	cv::cuda::GpuMat color_image_cuda_small_608;
+	cv::cuda::GpuMat color_image_cuda_small_full_416;
+	cv::cuda::GpuMat color_image_cuda_small_full_608;
 
 	depth_image_cuda.upload(depth_image);
 	color_image_cuda.upload(color_image);
 
-	cv::cuda::threshold(depth_image_cuda, depth_image_cuda_tmp, m_depth_thr, 100 , cv::THRESH_TOZERO_INV);
+	
+	if (m_image_rotation == 90) {
+		cv::cuda::rotate( color_image_cuda, color_image_cuda_tmp, cv::Size( color_image_cuda.size().height, color_image_cuda.size().width ), 270, color_image_cuda.size().height-1, 0, cv::INTER_LINEAR  );
+		cv::cuda::flip(color_image_cuda_tmp, color_image_cuda, 1);
+
+		cv::cuda::rotate( depth_image_cuda, depth_image_cuda_tmp, cv::Size( depth_image_cuda.size().height, depth_image_cuda.size().width ), 270, depth_image_cuda.size().height-1, 0, cv::INTER_LINEAR  );
+		cv::cuda::flip(depth_image_cuda_tmp, depth_image_cuda, 1);
+
+	} else if (m_image_rotation == 180) {
+		cv::cuda::rotate(color_image_cuda, color_image_cuda_tmp, cv::Size( color_image_cuda.size().width, color_image_cuda.size().height ), 180, color_image_cuda.size().width -1, color_image_cuda.size().height-1, cv::INTER_LINEAR  );
+		cv::cuda::flip(color_image_cuda_tmp, color_image_cuda, 1);
+
+		cv::cuda::rotate(depth_image_cuda, depth_image_cuda_tmp, cv::Size( depth_image_cuda.size().width, depth_image_cuda.size().height ), 180, depth_image_cuda.size().width -1, depth_image_cuda.size().height-1, cv::INTER_LINEAR  );
+		cv::cuda::flip(depth_image_cuda_tmp, depth_image_cuda, 1);
+
+	} else if (m_image_rotation == 270) {
+		cv::cuda::rotate( color_image_cuda, color_image_cuda_tmp, cv::Size( color_image_cuda.size().height, color_image_cuda.size().width ), 90, 0, color_image_cuda.size().width -1, cv::INTER_LINEAR  );
+		cv::cuda::flip(color_image_cuda_tmp, color_image_cuda, 1);
+
+		cv::cuda::rotate( depth_image_cuda, depth_image_cuda_tmp, cv::Size( depth_image_cuda.size().height, depth_image_cuda.size().width ), 90, 0, depth_image_cuda.size().width -1, cv::INTER_LINEAR  );
+		cv::cuda::flip(depth_image_cuda_tmp, depth_image_cuda, 1);
+
+	} else {
+		cv::cuda::flip(color_image_cuda, color_image_cuda_tmp, 1);
+		cv::cuda::flip(depth_image_cuda, depth_image_cuda_tmp, 1);
+		color_image_cuda = color_image_cuda_tmp;
+		depth_image_cuda = depth_image_cuda_tmp;
+	}
+
+	cv::cuda::threshold(depth_image_cuda, depth_image_cuda_tmp, m_depth_thr, 255 , cv::THRESH_TOZERO_INV);
 	//cv::cuda::threshold(depth_image_cuda_tmp, depth_image_cuda, 10, 10, cv::THRESH_BINARY); 
 
 	m_gaussian->apply(depth_image_cuda_tmp, depth_image_cuda);
 
-	cv::cuda::threshold(depth_image_cuda, depth_image_cuda_tmp, 4, 1, cv::THRESH_BINARY);
+	cv::cuda::threshold(depth_image_cuda, depth_image_cuda_tmp, 5, 1, cv::THRESH_BINARY);
 	//cv::cuda::threshold(depth_image_cuda_tmp, depth_image_cuda, m_depth_thr, 1, cv::THRESH_OTSU); //cv::THRESH_BINARY);
 	
-	color_image_cuda.copyTo(color_image_cuda_tmp, depth_image_cuda_tmp);
+	color_image_cuda.copyTo(color_image_cuda_out, depth_image_cuda_tmp);
+
+
+	color_image_cuda_out.download(color_image);
+	cv::cuda::resize(color_image_cuda_out, color_image_cuda_small_416, cv::Size(416,416));
+	cv::cuda::resize(color_image_cuda_out, color_image_cuda_small_608, cv::Size(608,608));
+	cv::cuda::resize(color_image_cuda, color_image_cuda_small_full_416, cv::Size(416,416));
+	cv::cuda::resize(color_image_cuda, color_image_cuda_small_full_608, cv::Size(608,608));
+
+	color_image_cuda_small_416.download(color_image_small_416);
+	color_image_cuda_small_416.download(color_image_small_608);
+	color_image_cuda_small_full_416.download(color_image_small_full_416);
+	color_image_cuda_small_full_608.download(color_image_small_full_608);
+
+	future_publishImage.wait();
+	future_publishImage_416.wait();
+	future_publishImage_608.wait();
+	future_publishImage_full_416.wait();
+	future_publishImage_full_608.wait();
 	
-	if (m_image_rotation == 90) {
-		cv::cuda::rotate( color_image_cuda_tmp, color_image_cuda, cv::Size( color_image_cuda.size().height, color_image_cuda.size().width ), -90, color_image_cuda.size().height-1, 0, cv::INTER_LINEAR  );
-		color_image_cuda.download(color_image);
-	} else if (m_image_rotation == 180) {
-		cv::cuda::rotate(color_image_cuda_tmp, color_image_cuda, cv::Size( color_image_cuda.size().width, color_image_cuda.size().height ), 180, color_image_cuda.size().width -1, color_image_cuda.size().height-1, cv::INTER_LINEAR  );
-		color_image_cuda.download(color_image);
-	} else if (m_image_rotation == 270) {
-		cv::cuda::rotate( color_image_cuda_tmp, color_image_cuda, cv::Size( color_image_cuda.size().height, color_image_cuda.size().width ), 90, 0, color_image_cuda.size().width -1, cv::INTER_LINEAR  );
-		color_image_cuda.download(color_image);
-	} else {
-		color_image_cuda_tmp.download(color_image);
-	}
-
 	std::memcpy(reinterpret_cast<void*>(m_send_frame_bytes), color_image.data, color_image.size().width * color_image.size().height * 3 * sizeof(uint8_t) );
-
+	std::memcpy(reinterpret_cast<void*>(m_send_frame_small_416_bytes), color_image_small_416.data, color_image_small_416.size().width * color_image_small_416.size().height * 3 * sizeof(uint8_t) );
+	std::memcpy(reinterpret_cast<void*>(m_send_frame_small_608_bytes), color_image_small_608.data, color_image_small_608.size().width * color_image_small_608.size().height * 3 * sizeof(uint8_t) );
+	std::memcpy(reinterpret_cast<void*>(m_send_frame_small_full_416_bytes), color_image_small_full_416.data, color_image_small_full_416.size().width * color_image_small_full_416.size().height * 3 * sizeof(uint8_t) );
+	std::memcpy(reinterpret_cast<void*>(m_send_frame_small_full_608_bytes), color_image_small_full_608.data, color_image_small_full_608.size().width * color_image_small_full_608.size().height * 3 * sizeof(uint8_t) );
+	
 	m_frameCnt++;
 	CheckFPS(&m_frameCnt);
 
@@ -189,7 +285,7 @@ void BackgroundImageNode::PrintFPS(const float fps, const float itrTime)
 
 	auto message = std_msgs::msg::String();
 	message.data = str.str();
-	//m_fps_publisher->publish(message);
+	m_fps_publisher->publish(message);
 
 		
 	if (m_print_fps)
