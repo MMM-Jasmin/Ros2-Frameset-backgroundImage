@@ -74,9 +74,6 @@ private:
 	rclcpp::Publisher<sensor_msgs::msg::Image>::SharedPtr 	m_image_small_full_608_publisher= nullptr;
 	rclcpp::Publisher<std_msgs::msg::String>::SharedPtr 	m_fps_publisher 	=	 nullptr;
 
-	rclcpp::QoS m_qos_profile = rclcpp::SystemDefaultsQoS();
-	rclcpp::QoS m_qos_profile_sysdef = rclcpp::SystemDefaultsQoS();
-
 	rclcpp::Subscription<camera_interfaces::msg::DepthFrameset>::SharedPtr m_frameset_subscription;
 
 	void framesetCallback(camera_interfaces::msg::DepthFrameset::UniquePtr fset_msg);

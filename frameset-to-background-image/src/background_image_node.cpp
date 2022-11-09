@@ -47,22 +47,30 @@ void BackgroundImageNode::init()
 	this->get_parameter("qos_sensor_data", qos_sensor_data);
 	this->get_parameter("qos_history_depth", qos_history_depth);
 
-	if(qos_sensor_data){
-		std::cout << "using ROS2 qos_sensor_data" << std::endl;
-		m_qos_profile = rclcpp::SensorDataQoS();
-	}
+	//rclcpp::QoS m_qos_profile = rclcpp::SystemDefaultsQoS();
+	//rclcpp::QoS m_qos_profile_sysdef = rclcpp::SystemDefaultsQoS();
 
-	m_qos_profile = m_qos_profile.keep_last(qos_history_depth);
-	m_qos_profile = m_qos_profile.keep_last(qos_history_depth);
-	m_qos_profile = m_qos_profile.lifespan(std::chrono::milliseconds(500));
+	//m_qos_profile = m_qos_profile.keep_last(qos_history_depth);
+	//m_qos_profile = m_qos_profile.reliability(RMW_QOS_POLICY_RELIABILITY_RELIABLE);
+	//m_qos_profile = m_qos_profile.durability(RMW_QOS_POLICY_DURABILITY_VOLATILE);
+	//
+	//m_qos_profile_sysdef = m_qos_profile_sysdef.keep_last(qos_history_depth);
+	//m_qos_profile_sysdef = m_qos_profile_sysdef.reliability(RMW_QOS_POLICY_RELIABILITY_RELIABLE);
+	//m_qos_profile_sysdef = m_qos_profile_sysdef.durability(RMW_QOS_POLICY_DURABILITY_VOLATILE);
+
+
+	rclcpp::QoS m_qos_profile = rclcpp::SensorDataQoS();
+	m_qos_profile = m_qos_profile.keep_last(5);
 	m_qos_profile = m_qos_profile.reliability(RMW_QOS_POLICY_RELIABILITY_RELIABLE);
 	m_qos_profile = m_qos_profile.durability(RMW_QOS_POLICY_DURABILITY_VOLATILE);
 	
-
-	m_qos_profile_sysdef = m_qos_profile_sysdef.keep_last(qos_history_depth);
-	m_qos_profile_sysdef = m_qos_profile_sysdef.lifespan(std::chrono::milliseconds(500));
-	//m_qos_profile_sysdef = m_qos_profile_sysdef.reliability(RMW_QOS_POLICY_RELIABILITY_RELIABLE);
+	rclcpp::QoS m_qos_profile_sysdef = rclcpp::SystemDefaultsQoS();
+	m_qos_profile_sysdef = m_qos_profile_sysdef.keep_last(5);
+	m_qos_profile_sysdef = m_qos_profile_sysdef.reliability(RMW_QOS_POLICY_RELIABILITY_RELIABLE);
 	m_qos_profile_sysdef = m_qos_profile_sysdef.durability(RMW_QOS_POLICY_DURABILITY_VOLATILE);
+
+
+
 	//rclcpp::QoS m_qos_profile_BEST = m_qos_profile_sysdef.reliability(RMW_QOS_POLICY_RELIABILITY_BEST_EFFORT);
 	
 	//m_qos_profile_sysdef = m_qos_profile_sysdef.reliability(RMW_QOS_POLICY_RELIABILITY_BEST_EFFORT);
@@ -80,7 +88,7 @@ void BackgroundImageNode::init()
 	//cv::namedWindow(m_window_name_frameset_0, cv::WINDOW_AUTOSIZE);
 
 	//m_gaussian = cv::cuda::createGaussianFilter(depth_image.type(),depth_image.type(), Size(31,31),0);
-	m_gaussian = cv::cuda::createGaussianFilter(CV_16UC1,CV_8UC1, cv::Size(13,13),1);
+	m_gaussian = cv::cuda::createGaussianFilter(CV_16UC1,CV_8UC1, cv::Size(3,3),1);
 
 	m_image_publisher 					= this->create_publisher<sensor_msgs::msg::Image>(out_ros_topic, m_qos_profile);
 	m_image_small_416_publisher 		= this->create_publisher<sensor_msgs::msg::Image>(out_small_ros_topic + "_416", m_qos_profile);;
@@ -110,7 +118,12 @@ void BackgroundImageNode::publishImage(uint8_t * color_image, int width, int hei
 
 	sensor_msgs::msg::Image::UniquePtr color_msg_ptr = std::make_unique<sensor_msgs::msg::Image>(color_msg);
 
-	message_publisher->publish(std::move(color_msg));
+	try{
+		message_publisher->publish(std::move(color_msg));
+	}
+  	catch (...) {
+    	RCLCPP_INFO(this->get_logger(), "message_publisher: hmm publishing dets has failed!! ");
+  	}
 }
 
 rcl_interfaces::msg::SetParametersResult BackgroundImageNode::parametersCallback(const std::vector<rclcpp::Parameter> &parameters)
@@ -207,15 +220,26 @@ void BackgroundImageNode::framesetCallback(camera_interfaces::msg::DepthFrameset
 		depth_image_cuda = depth_image_cuda_tmp;
 	}
 
-	cv::cuda::threshold(depth_image_cuda, depth_image_cuda_tmp, m_depth_thr, 255 , cv::THRESH_TOZERO_INV);
+	
+	cv::cuda::threshold(depth_image_cuda, depth_image_cuda_tmp, m_depth_thr, 40 , cv::THRESH_TOZERO_INV);
 	//cv::cuda::threshold(depth_image_cuda_tmp, depth_image_cuda, 10, 10, cv::THRESH_BINARY); 
 
-	m_gaussian->apply(depth_image_cuda_tmp, depth_image_cuda);
+	//m_gaussian->apply(depth_image_cuda_tmp, depth_image_cuda);
+	
+	//cv::cuda::cvtColor(depth_image_cuda_tmp,depth_image_cuda, cv::CV_8UC1
+	depth_image_cuda_tmp.convertTo(depth_image_cuda,CV_8UC1);
 
-	cv::cuda::threshold(depth_image_cuda, depth_image_cuda_tmp, 5, 1, cv::THRESH_BINARY);
+	//cv::cuda::threshold(depth_image_cuda, depth_image_cuda_tmp, 50, 1, cv::THRESH_BINARY);
 	//cv::cuda::threshold(depth_image_cuda_tmp, depth_image_cuda, m_depth_thr, 1, cv::THRESH_OTSU); //cv::THRESH_BINARY);
 	
-	color_image_cuda.copyTo(color_image_cuda_out, depth_image_cuda_tmp);
+	/**
+	
+	m_gaussian->apply(depth_image_cuda, depth_image_cuda_tmp);
+	
+	cv::cuda::threshold(depth_image_cuda_tmp, depth_image_cuda, m_depth_thr, 10, cv::THRESH_TOZERO_INV);
+	
+	 */
+	color_image_cuda.copyTo(color_image_cuda_out, depth_image_cuda);
 
 
 	color_image_cuda_out.download(color_image);
@@ -285,12 +309,16 @@ void BackgroundImageNode::PrintFPS(const float fps, const float itrTime)
 
 	auto message = std_msgs::msg::String();
 	message.data = str.str();
-	m_fps_publisher->publish(message);
+	
+	try{
+		m_fps_publisher->publish(message);
+	}
+  	catch (...) {
+    	RCLCPP_INFO(this->get_logger(), "m_fps_publisher: hmm publishing dets has failed!! ");
+  	}
 
-		
 	if (m_print_fps)
 		RCLCPP_INFO(this->get_logger(), "Publishing: '%s'", message.data.c_str());
-
 }
 
 
