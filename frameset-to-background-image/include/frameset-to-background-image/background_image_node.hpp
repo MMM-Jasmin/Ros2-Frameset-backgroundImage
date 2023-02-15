@@ -54,10 +54,14 @@ private:
 	int m_image_rotation, m_depth_thr;
 
 	uint8_t *m_send_frame_bytes = NULL;
+	uint8_t *m_send_frame_full_bytes = NULL;
 	uint8_t *m_send_frame_small_416_bytes = NULL;
 	uint8_t *m_send_frame_small_608_bytes = NULL;
+	uint8_t *m_send_frame_small_640_bytes = NULL;
 	uint8_t *m_send_frame_small_full_416_bytes = NULL;
 	uint8_t *m_send_frame_small_full_608_bytes = NULL;
+	uint16_t *m_send_depth_frame_bytes = NULL;
+
 
 	int m_out_small_width = 608;
 	int m_out_small_height = 608;
@@ -67,17 +71,23 @@ private:
 
 	cv::Ptr<cv::cuda::Filter> m_gaussian;
 
-	rclcpp::Publisher<sensor_msgs::msg::Image>::SharedPtr 	m_image_publisher	= nullptr;
-	rclcpp::Publisher<sensor_msgs::msg::Image>::SharedPtr 	m_image_small_416_publisher = nullptr;
-	rclcpp::Publisher<sensor_msgs::msg::Image>::SharedPtr 	m_image_small_608_publisher = nullptr;
-	rclcpp::Publisher<sensor_msgs::msg::Image>::SharedPtr 	m_image_small_full_416_publisher = nullptr;
-	rclcpp::Publisher<sensor_msgs::msg::Image>::SharedPtr 	m_image_small_full_608_publisher= nullptr;
-	rclcpp::Publisher<std_msgs::msg::String>::SharedPtr 	m_fps_publisher 	=	 nullptr;
+	rclcpp::Publisher<sensor_msgs::msg::Image>::SharedPtr 	m_image_publisher					= nullptr;
+	rclcpp::Publisher<sensor_msgs::msg::Image>::SharedPtr 	m_image_full_publisher		   		= nullptr;
+	rclcpp::Publisher<sensor_msgs::msg::Image>::SharedPtr 	m_image_small_416_publisher 		= nullptr;
+	rclcpp::Publisher<sensor_msgs::msg::Image>::SharedPtr 	m_image_small_608_publisher 		= nullptr;
+	rclcpp::Publisher<sensor_msgs::msg::Image>::SharedPtr   m_image_small_640_publisher 		= nullptr;
+	rclcpp::Publisher<sensor_msgs::msg::Image>::SharedPtr 	m_image_small_full_416_publisher 	= nullptr;
+	rclcpp::Publisher<sensor_msgs::msg::Image>::SharedPtr 	m_image_small_full_608_publisher	= nullptr;
+
+	rclcpp::Publisher<sensor_msgs::msg::Image>::SharedPtr 	m_depth_publisher					= nullptr;
+	
+	rclcpp::Publisher<std_msgs::msg::String>::SharedPtr 	m_fps_publisher 					= nullptr;
 
 	rclcpp::Subscription<camera_interfaces::msg::DepthFrameset>::SharedPtr m_frameset_subscription;
 
 	void framesetCallback(camera_interfaces::msg::DepthFrameset::UniquePtr fset_msg);
 	void publishImage(uint8_t * color_image, int width, int height, rclcpp::Publisher<sensor_msgs::msg::Image>::SharedPtr message_publisher);
+	void publishDepthImage(uint16_t * depth_image, int width, int height, rclcpp::Publisher<sensor_msgs::msg::Image>::SharedPtr message_publisher);
 
 	cv::Mat rotateAndScale(cv::cuda::GpuMat& input);
 	void blurAndRemoveBackground(cv::cuda::GpuMat& color_input, cv::cuda::GpuMat& depth_input);
