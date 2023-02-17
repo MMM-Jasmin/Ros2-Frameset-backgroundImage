@@ -67,8 +67,8 @@ int main(int argc, char** argv)
 	//image_node->setExitSignal(&exit_request);
 	image_node->init();
 
-	//rclcpp::executors::SingleThreadedExecutor executor;
-	rclcpp::executors::MultiThreadedExecutor executor(rclcpp::ExecutorOptions(), 3, false);
+	rclcpp::executors::SingleThreadedExecutor executor;
+	//rclcpp::executors::MultiThreadedExecutor executor(rclcpp::ExecutorOptions(), 3, false);
 	executor.add_node(image_node);
 
 	executor.spin();
@@ -78,3 +78,4 @@ int main(int argc, char** argv)
 	std::cout << "+==========[ Shutdown ]==========+" << std::endl;
 	return EXIT_SUCCESS;
 }
+
