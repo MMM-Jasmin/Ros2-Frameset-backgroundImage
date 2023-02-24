@@ -366,7 +366,7 @@ void BackgroundImageNode::PrintFPS(const float fps, const float itrTime)
   	}
 
 	if (m_print_fps)
-		RCLCPP_INFO(this->get_logger(), "Publishing: '%s'", message.data.c_str());
+		RCLCPP_INFO(this->get_logger(), message.data.c_str());
 }
 
 

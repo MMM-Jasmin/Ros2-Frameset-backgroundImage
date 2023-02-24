@@ -1,5 +1,5 @@
 # Configuration for object detection node
-/left_to_background:
+/leftTB:
   ros__parameters:
     # print debug output
     debug: true
