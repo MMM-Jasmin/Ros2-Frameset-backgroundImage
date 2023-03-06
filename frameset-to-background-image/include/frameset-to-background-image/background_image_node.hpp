@@ -55,11 +55,13 @@ private:
 
 	uint8_t *m_send_frame_bytes = NULL;
 	uint8_t *m_send_frame_full_bytes = NULL;
-	uint8_t *m_send_frame_small_416_bytes = NULL;
-	uint8_t *m_send_frame_small_608_bytes = NULL;
+	//uint8_t *m_send_frame_small_416_bytes = NULL;
+	//uint8_t *m_send_frame_small_608_bytes = NULL;
 	uint8_t *m_send_frame_small_640_bytes = NULL;
-	uint8_t *m_send_frame_small_full_416_bytes = NULL;
-	uint8_t *m_send_frame_small_full_608_bytes = NULL;
+	//uint8_t *m_send_frame_small_full_416_bytes = NULL;
+	//uint8_t *m_send_frame_small_full_608_bytes = NULL;
+	uint8_t *m_send_frame_small_full_640_bytes = NULL;
+	uint8_t *m_send_frame_small_full_640_kar_bytes = NULL;
 	uint16_t *m_send_depth_frame_bytes = NULL;
 
 
@@ -71,13 +73,15 @@ private:
 
 	cv::Ptr<cv::cuda::Filter> m_gaussian;
 
-	rclcpp::Publisher<sensor_msgs::msg::Image>::SharedPtr 	m_image_publisher					= nullptr;
-	rclcpp::Publisher<sensor_msgs::msg::Image>::SharedPtr 	m_image_full_publisher		   		= nullptr;
-	rclcpp::Publisher<sensor_msgs::msg::Image>::SharedPtr 	m_image_small_416_publisher 		= nullptr;
-	rclcpp::Publisher<sensor_msgs::msg::Image>::SharedPtr 	m_image_small_608_publisher 		= nullptr;
-	rclcpp::Publisher<sensor_msgs::msg::Image>::SharedPtr   m_image_small_640_publisher 		= nullptr;
-	rclcpp::Publisher<sensor_msgs::msg::Image>::SharedPtr 	m_image_small_full_416_publisher 	= nullptr;
-	rclcpp::Publisher<sensor_msgs::msg::Image>::SharedPtr 	m_image_small_full_608_publisher	= nullptr;
+	rclcpp::Publisher<sensor_msgs::msg::Image>::SharedPtr 	m_image_publisher						= nullptr;
+	rclcpp::Publisher<sensor_msgs::msg::Image>::SharedPtr 	m_image_full_publisher		   			= nullptr;
+	//rclcpp::Publisher<sensor_msgs::msg::Image>::SharedPtr 	m_image_small_416_publisher 			= nullptr;
+	//rclcpp::Publisher<sensor_msgs::msg::Image>::SharedPtr 	m_image_small_608_publisher 			= nullptr;
+	rclcpp::Publisher<sensor_msgs::msg::Image>::SharedPtr   m_image_small_640_publisher 			= nullptr;
+	//rclcpp::Publisher<sensor_msgs::msg::Image>::SharedPtr 	m_image_small_full_416_publisher 		= nullptr;
+	//rclcpp::Publisher<sensor_msgs::msg::Image>::SharedPtr 	m_image_small_full_608_publisher		= nullptr;
+	rclcpp::Publisher<sensor_msgs::msg::Image>::SharedPtr   m_image_small_full_640_publisher 		= nullptr;
+	rclcpp::Publisher<sensor_msgs::msg::Image>::SharedPtr   m_image_small_full_640_kar_publisher 	= nullptr;
 
 	rclcpp::Publisher<sensor_msgs::msg::Image>::SharedPtr 	m_depth_publisher					= nullptr;
 	
