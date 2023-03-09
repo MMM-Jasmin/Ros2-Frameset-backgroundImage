@@ -4,7 +4,7 @@
     # print debug output
     debug: true
     # rotate images? 0/90/180/270
-    rotation: 90
+    rotation: 270
     # image source topic
     in_topic: "/camera_left/frameset"
     # image destination topic

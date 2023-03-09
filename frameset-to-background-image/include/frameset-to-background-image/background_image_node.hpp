@@ -55,14 +55,10 @@ private:
 
 	uint8_t *m_send_frame_bytes = NULL;
 	uint8_t *m_send_frame_full_bytes = NULL;
-	//uint8_t *m_send_frame_small_416_bytes = NULL;
-	//uint8_t *m_send_frame_small_608_bytes = NULL;
-	uint8_t *m_send_frame_small_640_bytes = NULL;
-	//uint8_t *m_send_frame_small_full_416_bytes = NULL;
-	//uint8_t *m_send_frame_small_full_608_bytes = NULL;
-	uint8_t *m_send_frame_small_full_640_bytes = NULL;
-	uint8_t *m_send_frame_small_full_640_kar_bytes = NULL;
+	uint8_t *m_send_frame_small_full_kar_bytes = NULL;
+	uint8_t *m_send_frame_small_limited_kar_bytes = NULL;
 	uint16_t *m_send_depth_frame_bytes = NULL;
+	uint16_t *m_send_depth_frame_limited_bytes = NULL;
 
 
 	int m_out_small_width = 608;
@@ -71,19 +67,21 @@ private:
 	rcl_interfaces::msg::SetParametersResult parametersCallback(const std::vector<rclcpp::Parameter> &parameters);
 	OnSetParametersCallbackHandle::SharedPtr callback_handle_;
 
-	cv::Ptr<cv::cuda::Filter> m_gaussian;
+	cv::Ptr<cv::cuda::Filter> m_gaussian_small;
+	cv::Ptr<cv::cuda::Filter>m_gaussian_big;
+	cv::Ptr<cv::cuda::Filter> m_morph_filter_open;
+	cv::Ptr<cv::cuda::Filter> m_morph_filter_close;
+	cv::Ptr<cv::cuda::Filter> m_morph_filter_erode;
 
-	rclcpp::Publisher<sensor_msgs::msg::Image>::SharedPtr 	m_image_publisher						= nullptr;
-	rclcpp::Publisher<sensor_msgs::msg::Image>::SharedPtr 	m_image_full_publisher		   			= nullptr;
-	//rclcpp::Publisher<sensor_msgs::msg::Image>::SharedPtr 	m_image_small_416_publisher 			= nullptr;
-	//rclcpp::Publisher<sensor_msgs::msg::Image>::SharedPtr 	m_image_small_608_publisher 			= nullptr;
-	rclcpp::Publisher<sensor_msgs::msg::Image>::SharedPtr   m_image_small_640_publisher 			= nullptr;
-	//rclcpp::Publisher<sensor_msgs::msg::Image>::SharedPtr 	m_image_small_full_416_publisher 		= nullptr;
-	//rclcpp::Publisher<sensor_msgs::msg::Image>::SharedPtr 	m_image_small_full_608_publisher		= nullptr;
-	rclcpp::Publisher<sensor_msgs::msg::Image>::SharedPtr   m_image_small_full_640_publisher 		= nullptr;
-	rclcpp::Publisher<sensor_msgs::msg::Image>::SharedPtr   m_image_small_full_640_kar_publisher 	= nullptr;
+	std::string m_window_name_depth	 			= "Depth_Frame";
+	std::string m_window_name_depth_small		= "Depth_Frame_Small";
 
+	rclcpp::Publisher<sensor_msgs::msg::Image>::SharedPtr 	m_image_publisher					= nullptr;
+	rclcpp::Publisher<sensor_msgs::msg::Image>::SharedPtr 	m_image_full_publisher		   		= nullptr;
+	rclcpp::Publisher<sensor_msgs::msg::Image>::SharedPtr   m_image_small_full_kar_publisher 	= nullptr;
+	rclcpp::Publisher<sensor_msgs::msg::Image>::SharedPtr 	m_image_small_limited_kar_publisher = nullptr;
 	rclcpp::Publisher<sensor_msgs::msg::Image>::SharedPtr 	m_depth_publisher					= nullptr;
+	rclcpp::Publisher<sensor_msgs::msg::Image>::SharedPtr 	m_depth_limited_publisher			= nullptr;
 	
 	rclcpp::Publisher<std_msgs::msg::String>::SharedPtr 	m_fps_publisher 					= nullptr;
 
