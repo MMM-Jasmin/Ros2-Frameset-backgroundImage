@@ -8,12 +8,11 @@
     # image source topic
     in_topic: "/camera_left/frameset"
     # image destination topic
-    out_topic: "/background/color"
+    out_limited_topic: "/background/color_limited"
     out_full_topic: "/background/color_full"
     out_small_topic: "/background/color_small"
     out_depth_topic: "/background/depth"
     fps_topic: "/background/fps"
-    max_fps: 30.0
     print_fps: true
     FPS_STR: "FPS"
     # Use sensor data Quality of Service for messages
@@ -21,5 +20,11 @@
     # Message queue size
     qos_history_depth: 5
     # threshold for cutting background
-    depth_thr: 1800
+    depth_thr_max: 2000
+    depth_thr_min: 500
+    open_kernel_size: 7
+    close_kernel_size: 2
+    blur_kernel_size: 3
+    black_blur_kernel_size: 3
+
 
