@@ -50,16 +50,21 @@ private:
 	int m_image_rotation, m_depth_thr_min, m_depth_thr_max;
 	int m_open_kernel_size, m_close_kernel_size, m_blur_kernel_size, m_black_blur_kernel_size;
 
-	uint8_t *m_send_color_full_bytes = NULL;
-	uint8_t *m_send_color_limited_bytes = NULL;
-	uint16_t *m_send_depth_full_bytes = NULL;
-	uint16_t *m_send_depth_limited_bytes = NULL;
-	uint8_t *m_send_color_small_limited_bytes = NULL;
+	int m_os_image_size = 416;
+
+	uint8_t 	*m_send_color_full_bytes 			= NULL;
+	uint8_t 	*m_send_color_limited_bytes 		= NULL;
+	uint16_t 	*m_send_depth_full_bytes 			= NULL;
+	uint16_t 	*m_send_depth_limited_bytes 		= NULL;
+	uint8_t 	*m_send_color_small_limited_bytes 	= NULL;
+	uint8_t 	*m_send_color_ostest_bytes 			= NULL;
 
 	cv::cuda::GpuMat m_color_cuda;
 	cv::cuda::GpuMat m_color_cuda_rotated;
 	cv::cuda::GpuMat m_color_cuda_flipped;
 	cv::cuda::GpuMat m_color_small_cuda_out;
+	cv::cuda::GpuMat m_color_ostest_cuda_out;
+	cv::cuda::GpuMat m_color_ostest_cuda_out_rgb;
 
 	cv::cuda::GpuMat m_depth_cuda;
 	cv::cuda::GpuMat m_depth_cuda_rotated;
@@ -87,6 +92,7 @@ private:
 	cv::Mat m_depth_limited_out;
 	cv::Mat m_color_limited_out;
 	cv::Mat m_color_small_limited_out;
+	cv::Mat m_color_ostest_out;
 	cv::Mat m_color_out; 
 	cv::Mat m_depth_out;
 
@@ -106,6 +112,7 @@ private:
 	rclcpp::Publisher<sensor_msgs::msg::Image>::SharedPtr 	m_image_full_publisher		   		= nullptr;
 	rclcpp::Publisher<sensor_msgs::msg::Image>::SharedPtr   m_image_small_full_kar_publisher 	= nullptr;
 	rclcpp::Publisher<sensor_msgs::msg::Image>::SharedPtr 	m_image_small_limited_kar_publisher = nullptr;
+	rclcpp::Publisher<sensor_msgs::msg::Image>::SharedPtr 	m_image_small_ostest_publisher		= nullptr;
 	rclcpp::Publisher<sensor_msgs::msg::Image>::SharedPtr 	m_depth_publisher					= nullptr;
 	rclcpp::Publisher<sensor_msgs::msg::Image>::SharedPtr 	m_depth_limited_publisher			= nullptr;
 	

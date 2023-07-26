@@ -12,6 +12,7 @@
     out_full_topic: "/background/color_full"
     out_small_topic: "/background/color_small"
     out_depth_topic: "/background/depth"
+    out_ostest_topic: "/background/color_ostest"
     fps_topic: "/background/fps"
     print_fps: true
     FPS_STR: "FPS"
