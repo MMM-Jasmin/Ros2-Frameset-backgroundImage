@@ -63,13 +63,13 @@ void BackgroundImageNode::init()
 	m_qos_profile = m_qos_profile.keep_last(5);
 	m_qos_profile = m_qos_profile.reliability(RMW_QOS_POLICY_RELIABILITY_RELIABLE);
 	//m_qos_profile = m_qos_profile.durability(RMW_QOS_POLICY_DURABILITY_VOLATILE);
-	m_qos_profile = m_qos_profile.durability(RMW_QOS_POLICY_DURABILITY_TRANSIENT_LOCAL);
+	//m_qos_profile = m_qos_profile.durability(RMW_QOS_POLICY_DURABILITY_TRANSIENT_LOCAL);
 	
 	rclcpp::QoS m_qos_profile_sysdef = rclcpp::SystemDefaultsQoS();
 	m_qos_profile_sysdef = m_qos_profile_sysdef.keep_last(5);
 	m_qos_profile_sysdef = m_qos_profile_sysdef.reliability(RMW_QOS_POLICY_RELIABILITY_RELIABLE);
 	//m_qos_profile_sysdef = m_qos_profile_sysdef.durability(RMW_QOS_POLICY_DURABILITY_VOLATILE);
-	m_qos_profile_sysdef = m_qos_profile_sysdef.durability(RMW_QOS_POLICY_DURABILITY_TRANSIENT_LOCAL);
+	//m_qos_profile_sysdef = m_qos_profile_sysdef.durability(RMW_QOS_POLICY_DURABILITY_TRANSIENT_LOCAL);
 
 	m_elapsedTime = 0;
 	m_timer.Start();
@@ -98,7 +98,7 @@ void BackgroundImageNode::init()
 	m_depth_publisher 						= this->create_publisher<sensor_msgs::msg::Image>(out_depth_topic, m_qos_profile);
 	m_depth_limited_publisher 				= this->create_publisher<sensor_msgs::msg::Image>(out_depth_topic + "_limited", m_qos_profile);
 	m_image_small_limited_kar_publisher		= this->create_publisher<sensor_msgs::msg::Image>(out_small_ros_topic + "_limited", m_qos_profile);
-	m_image_small_ostest_publisher			= this->create_publisher<sensor_msgs::msg::Image>(out_ostest_topic, m_qos_profile);
+	//m_image_small_ostest_publisher		= this->create_publisher<sensor_msgs::msg::Image>(out_ostest_topic, m_qos_profile);
 	//m_image_small_full_kar_publisher		= this->create_publisher<sensor_msgs::msg::Image>(out_small_ros_topic + "_full_640_kar", m_qos_profile);
 
 	m_fps_publisher    						= this->create_publisher<std_msgs::msg::String>(fps_topic, m_qos_profile_sysdef);
@@ -109,6 +109,7 @@ void BackgroundImageNode::init()
 void BackgroundImageNode::publishImage(uint8_t * color_image, int width, int height, rclcpp::Publisher<sensor_msgs::msg::Image>::SharedPtr message_publisher)
 {
 	sensor_msgs::msg::Image color_msg;
+	color_msg.header.stamp    = this->get_clock()->now();
 	color_msg.width           = width;
 	color_msg.height          = height;
 	color_msg.is_bigendian    = false;
@@ -131,6 +132,7 @@ void BackgroundImageNode::publishDepthImage(uint16_t * depth_image, int width, i
 		uint8_t * ui8_depth_image = reinterpret_cast<uint8_t *>(depth_image);
 
 		sensor_msgs::msg::Image depth_msg;
+		depth_msg.header.stamp    = this->get_clock()->now();
 		depth_msg.width           = width;
 		depth_msg.height          = height;
 		depth_msg.is_bigendian    = false;
@@ -223,8 +225,8 @@ void BackgroundImageNode::framesetCallback(camera_interfaces::msg::DepthFrameset
 	if (m_send_depth_limited_bytes == NULL)
 		m_send_depth_limited_bytes  = reinterpret_cast<uint16_t *>(malloc(image_width * image_height * sizeof(uint16_t)));
 
-	if (m_send_color_ostest_bytes == NULL)
-		m_send_color_ostest_bytes = reinterpret_cast<uint8_t *>(malloc(m_os_image_size * m_os_image_size * 3 * sizeof(uint8_t)));
+	//if (m_send_color_ostest_bytes == NULL)
+	//	m_send_color_ostest_bytes = reinterpret_cast<uint8_t *>(malloc(m_os_image_size * m_os_image_size * 3 * sizeof(uint8_t)));
 	
 
 	auto future_publishImage_full			= std::async(&BackgroundImageNode::publishImage, 		this, m_send_color_full_bytes, 			send_width, 	send_heigth, 	m_image_full_publisher);
@@ -232,7 +234,7 @@ void BackgroundImageNode::framesetCallback(camera_interfaces::msg::DepthFrameset
 	auto future_publishDepthImage			= std::async(&BackgroundImageNode::publishDepthImage,	this, m_send_depth_full_bytes, 			send_width, 	send_heigth, 	m_depth_publisher);
 	auto future_publishDepthImage_limited	= std::async(&BackgroundImageNode::publishDepthImage,	this, m_send_depth_limited_bytes, 		send_width, 	send_heigth, 	m_depth_limited_publisher);
 	auto future_publishImage_small_limited	= std::async(&BackgroundImageNode::publishImage,		this, m_send_color_small_limited_bytes, KAR_640_width, 	KAR_640_height, m_image_small_limited_kar_publisher);
-	auto future_publishImage_ostest			= std::async(&BackgroundImageNode::publishImage, 		this, m_send_color_ostest_bytes, 		m_os_image_size,m_os_image_size, m_image_small_ostest_publisher);
+	//auto future_publishImage_ostest			= std::async(&BackgroundImageNode::publishImage, 		this, m_send_color_ostest_bytes, 		m_os_image_size,m_os_image_size, m_image_small_ostest_publisher);
 	
 
 	cv::Size image_size(image_width, image_height);
@@ -274,17 +276,17 @@ void BackgroundImageNode::framesetCallback(camera_interfaces::msg::DepthFrameset
 	
 	m_linear_small->apply(m_depth_cuda_flipped, m_depth_cuda_linear);
 	
-	cv::cuda::threshold(m_depth_cuda_linear, m_depth_cuda_thr, m_depth_thr_min, 0 , cv::THRESH_TOZERO);
+	//cv::cuda::threshold(m_depth_cuda_linear, m_depth_cuda_thr, m_depth_thr_min, 0 , cv::THRESH_TOZERO);
 	cv::cuda::threshold(m_depth_cuda_linear, m_depth_cuda_thr, m_depth_thr_max, 255 , cv::THRESH_TOZERO_INV);
 
-	cv::cuda::resize(m_depth_cuda_thr, m_depth_small_cuda, cv::Size(272,480), cv::INTER_AREA);
+	//cv::cuda::resize(m_depth_cuda_thr, m_depth_small_cuda, cv::Size(KAR_640_width, KAR_640_height), cv::INTER_AREA);
 
-	m_depth_small_cuda.convertTo(m_depth_small_cuda_convU8, CV_8UC1);
+	m_depth_cuda_thr.convertTo(m_depth_small_cuda_convU8, CV_8UC1);
 
 	m_morph_filter_open->apply(m_depth_small_cuda_convU8, m_depth_small_cuda_morph_open);
-	m_morph_filter_close->apply(m_depth_small_cuda_morph_open, m_depth_small_cuda_morph);
+	m_morph_filter_close->apply(m_depth_small_cuda_morph_open, m_depth_cuda_morph);
 	
-	cv::cuda::resize(m_depth_small_cuda_morph, m_depth_cuda_morph, cv::Size(m_depth_cuda_flipped.size().width, m_depth_cuda_flipped.size().height), cv::INTER_LINEAR);
+	//cv::cuda::resize(m_depth_small_cuda_morph, m_depth_cuda_morph, cv::Size(m_depth_cuda_flipped.size().width, m_depth_cuda_flipped.size().height), cv::INTER_LINEAR);
 
 	cv::cuda::GpuMat depth_cuda_out;
 	cv::cuda::GpuMat color_cuda_out;
@@ -305,25 +307,27 @@ void BackgroundImageNode::framesetCallback(camera_interfaces::msg::DepthFrameset
 	color_cuda_out.download(m_color_limited_out);
 
 	cv::cuda::resize(color_cuda_out, m_color_small_cuda_out, cv::Size(KAR_640_width, KAR_640_height), cv::INTER_AREA);
-	cv::cuda::resize(color_cuda_out, m_color_ostest_cuda_out, cv::Size(m_os_image_size, m_os_image_size), cv::INTER_AREA);
+	//cv::cuda::resize(color_cuda_out, m_color_ostest_cuda_out, cv::Size(m_os_image_size, m_os_image_size), cv::INTER_AREA);
 
 	//cv::cuda::cvtColor(m_color_ostest_cuda_out, m_color_ostest_cuda_out_rgb, cv::COLOR_BGR2BGRA);
 
 	m_color_small_cuda_out.download(m_color_small_limited_out);
-	m_color_ostest_cuda_out.download(m_color_ostest_out);
+	//m_color_ostest_cuda_out.download(m_color_ostest_out);
 
 	future_publishImage_full.wait();
 	future_publishImage_limited.wait();
 	future_publishDepthImage.wait();
 	future_publishDepthImage_limited.wait();
 	future_publishImage_small_limited.wait();
+	//future_publishImage_ostest.wait();
+	
 
 	std::memcpy(reinterpret_cast<void*>(m_send_color_full_bytes), m_color_out.data, m_color_out.size().width * m_color_out.size().height * 3 * sizeof(uint8_t));
 	std::memcpy(reinterpret_cast<void*>(m_send_color_limited_bytes), m_color_limited_out.data, m_color_limited_out.size().width * m_color_limited_out.size().height * 3 * sizeof(uint8_t));
 	std::memcpy(reinterpret_cast<void*>(m_send_depth_full_bytes), m_depth_out.data, m_depth_out.size().width * m_depth_out.size().height * sizeof(uint16_t));
 	std::memcpy(reinterpret_cast<void*>(m_send_depth_limited_bytes), m_depth_limited_out.data, m_depth_limited_out.size().width * m_depth_limited_out.size().height * sizeof(uint16_t));
 	std::memcpy(reinterpret_cast<void*>(m_send_color_small_limited_bytes), 	m_color_small_limited_out.data,	m_color_small_limited_out.size().width * m_color_small_limited_out.size().height * 3 * sizeof(uint8_t));
-	std::memcpy(reinterpret_cast<void*>(m_send_color_ostest_bytes), m_color_ostest_out.data,	m_color_ostest_out.size().width * m_color_ostest_out.size().height * 3 * sizeof(uint8_t));
+	//std::memcpy(reinterpret_cast<void*>(m_send_color_ostest_bytes), m_color_ostest_out.data,	m_color_ostest_out.size().width * m_color_ostest_out.size().height * 3 * sizeof(uint8_t));
 
 	m_frameCnt++;
 	CheckFPS(&m_frameCnt);

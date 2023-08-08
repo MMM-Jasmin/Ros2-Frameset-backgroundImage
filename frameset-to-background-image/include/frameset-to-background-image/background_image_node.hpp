@@ -57,7 +57,7 @@ private:
 	uint16_t 	*m_send_depth_full_bytes 			= NULL;
 	uint16_t 	*m_send_depth_limited_bytes 		= NULL;
 	uint8_t 	*m_send_color_small_limited_bytes 	= NULL;
-	uint8_t 	*m_send_color_ostest_bytes 			= NULL;
+	//uint8_t 	*m_send_color_ostest_bytes 			= NULL;
 
 	cv::cuda::GpuMat m_color_cuda;
 	cv::cuda::GpuMat m_color_cuda_rotated;
@@ -112,7 +112,7 @@ private:
 	rclcpp::Publisher<sensor_msgs::msg::Image>::SharedPtr 	m_image_full_publisher		   		= nullptr;
 	rclcpp::Publisher<sensor_msgs::msg::Image>::SharedPtr   m_image_small_full_kar_publisher 	= nullptr;
 	rclcpp::Publisher<sensor_msgs::msg::Image>::SharedPtr 	m_image_small_limited_kar_publisher = nullptr;
-	rclcpp::Publisher<sensor_msgs::msg::Image>::SharedPtr 	m_image_small_ostest_publisher		= nullptr;
+	//rclcpp::Publisher<sensor_msgs::msg::Image>::SharedPtr 	m_image_small_ostest_publisher		= nullptr;
 	rclcpp::Publisher<sensor_msgs::msg::Image>::SharedPtr 	m_depth_publisher					= nullptr;
 	rclcpp::Publisher<sensor_msgs::msg::Image>::SharedPtr 	m_depth_limited_publisher			= nullptr;
 	
